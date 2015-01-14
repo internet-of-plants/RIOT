@@ -114,7 +114,7 @@ puts("[main] provider NULLed");
     /* add global address */
     ipv6_addr_t tmp;
     /* initialize prefix */
-    ipv6_addr_init(&tmp, 0xabcd, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, id);
+    ipv6_addr_init(&tmp, 0x2001, 0x0db8, 0x0001, 0x0, 0x0, 0x0, 0x0, 0x0003);
     /* set host suffix */
     ipv6_addr_set_by_eui64(&tmp, 0, &tmp);
     ipv6_net_if_add_addr(0, &tmp, NDP_ADDR_STATE_PREFERRED, 0, 0, 0);
@@ -124,8 +124,18 @@ puts("[main] provider NULLed");
     tcmd.data = &chan;
     m.type = SET_CHANNEL;
     m.content.ptr = (void *) &tcmd;
-    printf("[main] setup transceiver: %d, %d, %d\n", transceiver_pid, KERNEL_PID_UNDEF, monitor_pid);
     msg_send_receive(&m, &m, transceiver_pid);
+
+    /* set panid to 0x3e9 */
+    uint32_t pan = 0x3e9;
+    tcmd.transceivers = TRANSCEIVER_DEFAULT;
+    tcmd.data = &pan;
+    m.type = SET_PAN;
+    m.content.ptr = (void *) &tcmd;
+    msg_send_receive(&m, &m, transceiver_pid);
+
+//    printf("[main] setup transceiver: %d, %d, %d\n", transceiver_pid, KERNEL_PID_UNDEF, monitor_pid);
+
 
 puts("[main] transceiver initialized");
 
@@ -147,7 +157,7 @@ puts("[main] transceiver initialized");
     memset(&sa, 0, sizeof(sa));
 
     if (address) {
-        ipv6_addr_init(&ipaddr, 0xabcd, 0x0, 0x0, 0x0, 0x0, 0x00ff, 0xfe00, (uint16_t)address);
+        ipv6_addr_init(&ipaddr, 0x2001, 0x0db8, 0x0001, 0x0, 0x0, 0x0, 0x0, 0x0001);
     }
     else {
         ipv6_addr_set_all_nodes_addr(&ipaddr);
@@ -172,6 +182,7 @@ puts("[main] transceiver initialized");
     }
 
     socket_base_close(sock);
+    thread_yield();
     puts("[main] socket closed");
     return 0;
 }
