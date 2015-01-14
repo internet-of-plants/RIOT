@@ -48,5 +48,7 @@ QUIET ?= 1
 USEMODULE += vtimer
 USEMODULE += defaulttransceiver
 USEMODULE += udp
+#USEPKG += libcoap
+USEMODULE += ps
 
 include $(RIOTBASE)/Makefile.include

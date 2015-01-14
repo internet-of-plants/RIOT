@@ -6,9 +6,15 @@
 #include "sixlowpan.h"
 #include "udp.h"
 #include "transceiver.h"
+#include "test_coap.h"
+#include "ps.h"
+//#include "coap.h"
 
 char addr_str[IPV6_MAX_ADDR_STR_LEN];
 char monitor_stack_buffer[KERNEL_CONF_STACKSIZE_MAIN];
+char udp_server_stack_buffer[KERNEL_CONF_STACKSIZE_MAIN];
+
+#define UDP_BUFFER_SIZE (1024)
 
 #define RCV_BUFFER_SIZE     (32)
 msg_t msg_q[RCV_BUFFER_SIZE];
@@ -80,17 +86,55 @@ void *pnet_udp_monitor(void *arg)
     return NULL;
 }
 
+static void *init_udp_server(void *arg)
+{
+    (void) arg;
+
+    sockaddr6_t sa;
+    char buffer_main[UDP_BUFFER_SIZE];
+    uint32_t fromlen;
+    int sock = socket_base_socket(PF_INET6, SOCK_DGRAM, IPPROTO_UDP);
+
+    memset(&sa, 0, sizeof(sa));
+
+    sa.sin6_family = AF_INET;
+    sa.sin6_port = HTONS(12345);
+
+    fromlen = sizeof(sa);
+
+    if (-1 == socket_base_bind(sock, &sa, sizeof(sa))) {
+        printf("Error bind failed!\n");
+        socket_base_close(sock);
+        return NULL;
+    }
+
+    while (1) {
+        int32_t recsize = socket_base_recvfrom(sock, (void *)buffer_main, UDP_BUFFER_SIZE, 0, &sa, &fromlen);
+
+        if (recsize < 0) {
+            printf("ERROR: recsize < 0!\n");
+        }
+
+        printf("UDP packet received, payload: %s\n", buffer_main);
+    }
+
+    socket_base_close(sock);
+
+    return NULL;
+}
+
 int main(void)
 {
+
     net_if_set_src_address_mode(0, NET_IF_TRANS_ADDR_M_SHORT);
     radio_address_t id = net_if_get_hardware_address(0);
 
     transceiver_command_t tcmd;
     msg_t m;
     uint32_t chan = 21;
-
+    printf("Setting HW address to %u\n", id);
     net_if_set_hardware_address(0, id);
-
+    sixlowpan_lowpan_init_interface(0);
 /////////////////////////////////
     ipv6_iface_set_routing_provider(NULL);
 ///////////////////////////////////
@@ -111,10 +155,19 @@ puts("[main] provider NULLed");
     transceiver_register(TRANSCEIVER_DEFAULT, monitor_pid);
     ipv6_register_packet_handler(monitor_pid);
 
+
+    /* kernel_pid_t udp_server_thread_pid = */ thread_create(udp_server_stack_buffer,
+    sizeof(udp_server_stack_buffer),
+    PRIORITY_MAIN, CREATE_STACKTEST,
+    init_udp_server,
+    NULL,
+    "init_udp_server");
+
+
     /* add global address */
     ipv6_addr_t tmp;
     /* initialize prefix */
-    ipv6_addr_init(&tmp, 0x2001, 0x0db8, 0x0001, 0x0, 0x0, 0x0, 0x0, 0x0003);
+    ipv6_addr_init(&tmp, 0x2001, 0x0db8, 0x0001, 0x0, 0x0, 0x0, 0x0, id);
     /* set host suffix */
     ipv6_addr_set_by_eui64(&tmp, 0, &tmp);
     ipv6_net_if_add_addr(0, &tmp, NDP_ADDR_STATE_PREFERRED, 0, 0, 0);
@@ -134,11 +187,21 @@ puts("[main] provider NULLed");
     m.content.ptr = (void *) &tcmd;
     msg_send_receive(&m, &m, transceiver_pid);
 
+    /* need link local prefix to query _our_ corresponding address  */
+    ipv6_addr_t ll_address;
+    ipv6_addr_set_link_local_prefix(&ll_address);
+    ipv6_net_if_get_best_src_addr(&tmp, &ll_address);
+    //ipv6_iface_set_srh_indicator(0);
+    printf("tmp: %s, LL: %s \n",
+    ipv6_addr_to_str(addr_str, IPV6_MAX_ADDR_STR_LEN,
+    &tmp), ipv6_addr_to_str(addr_str, IPV6_MAX_ADDR_STR_LEN,
+    &ll_address));
+
 //    printf("[main] setup transceiver: %d, %d, %d\n", transceiver_pid, KERNEL_PID_UNDEF, monitor_pid);
 
 
 puts("[main] transceiver initialized");
-
+my_cool_coap_test_function();
     int sock;
     sockaddr6_t sa;
     ipv6_addr_t ipaddr;
@@ -157,7 +220,7 @@ puts("[main] transceiver initialized");
     memset(&sa, 0, sizeof(sa));
 
     if (address) {
-        ipv6_addr_init(&ipaddr, 0x2001, 0x0db8, 0x0001, 0x0, 0x0, 0x0, 0x0, 0x0001);
+        ipv6_addr_init(&ipaddr, 0x2001, 0x0db8, 0x0001, 0x0, 0x0012, 0x4bff, 0xfee4, 0x0a02);//0x2001, 0x0db8, 0x0001, 0x0, 0x0, 0x0, 0x0, 0x0001);
     }
     else {
         ipv6_addr_set_all_nodes_addr(&ipaddr);
@@ -180,6 +243,7 @@ puts("[main] transceiver initialized");
         bytes_sent, ipv6_addr_to_str(addr_str, IPV6_MAX_ADDR_STR_LEN,
         &ipaddr));
     }
+    thread_print_all();
 
     socket_base_close(sock);
     thread_yield();

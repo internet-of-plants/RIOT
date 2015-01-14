@@ -108,15 +108,16 @@ int ipv6_send_packet(ipv6_hdr_t *packet, ipv6_addr_t *next_hop)
             DEBUG("Trying to find the next hop for %s\n", ipv6_addr_to_str(addr_str, IPV6_MAX_ADDR_STR_LEN, &packet->destaddr));
 
             if (ip_get_next_hop == NULL) {
-                puts("[EVIL AND DIRTY HACK pt1] I expected you!!!");
-                //return -1;
+                puts("[EVIL AND DIRTY HACK] I expected you!!!");
+                ipv6_addr_t tmp;
+                ipv6_addr_init(&tmp, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0020, 0xffff);
+                // this results in ff02::1
+                sixlowpan_lowpan_sendto(0, &(tmp.uint16[7]), 2, (uint8_t *) packet,
+                length);
+                return -1;
             }
-            ipv6_addr_t tmp;
 
-            //ipv6_addr_init(&tmp, 0xfe80, 0x0, 0x0, 0x0, 0x0012, 0x4bff, 0xfee4, 0x0a83);
-            ipv6_addr_init(&tmp, 0xff02, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0001);
-            ipv6_addr_t *dest = &tmp;//ip_get_next_hop(&packet->destaddr);
-
+            ipv6_addr_t *dest = ip_get_next_hop(&packet->destaddr);
 
 
             if (dest == NULL) {
@@ -128,18 +129,12 @@ int ipv6_send_packet(ipv6_hdr_t *packet, ipv6_addr_t *next_hop)
             if (nce == NULL
                 || sixlowpan_lowpan_sendto(nce->if_id, &nce->lladdr,
                                            nce->lladdr_len, (uint8_t *) packet, length) < 0) {
-                puts("[EVIL AND DIRTY HACK pt2] lets do it!!!");
-                    sixlowpan_lowpan_sendto(0, &(tmp.uint16[7]), 2, (uint8_t *) packet,
-                                           length);
-
 
                 /* XXX: this is wrong, but until ND does work correctly,
                  *      this is the only way (aka the old way)*/
-                 /*
                 uint16_t raddr = dest->uint16[7];
                 sixlowpan_lowpan_sendto(0, &raddr, 2, (uint8_t *) packet,
                                         length);
-                */
                 /* return -1; */
             }
         }
