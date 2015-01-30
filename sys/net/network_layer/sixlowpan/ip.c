@@ -34,7 +34,7 @@
 
 #include "net_help.h"
 
-#define ENABLE_DEBUG    (1)
+#define ENABLE_DEBUG    (0)
 #if ENABLE_DEBUG
 static char addr_str[IPV6_MAX_ADDR_STR_LEN];
 #endif
@@ -108,13 +108,10 @@ int ipv6_send_packet(ipv6_hdr_t *packet, ipv6_addr_t *next_hop)
             DEBUG("Trying to find the next hop for %s\n", ipv6_addr_to_str(addr_str, IPV6_MAX_ADDR_STR_LEN, &packet->destaddr));
 
             if (ip_get_next_hop == NULL) {
-                puts("[EVIL AND DIRTY HACK] I expected you!!!");
-                ipv6_addr_t tmp;
-                ipv6_addr_init(&tmp, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0020, 0xffff);
-                // this results in ff02::1
-                sixlowpan_lowpan_sendto(0, &(tmp.uint16[7]), 2, (uint8_t *) packet,
-                length);
-                return -1;
+                puts("[EVIL AND DIRTY HACK] We send always multicast (grrrrr)!!!");
+                uint16_t mc = 0xffff;
+                sixlowpan_lowpan_sendto(0, &mc, 2, (uint8_t *) packet, length);
+                return length;
             }
 
             ipv6_addr_t *dest = ip_get_next_hop(&packet->destaddr);

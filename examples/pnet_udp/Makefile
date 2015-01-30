@@ -41,14 +41,10 @@ QUIET ?= 1
 
 # Modules to include:
 
-#USEMODULE += shell
-#USEMODULE += shell_commands
-#USEMODULE += uart0
-#USEMODULE += ps
 USEMODULE += vtimer
 USEMODULE += defaulttransceiver
 USEMODULE += udp
 #USEPKG += libcoap
-USEMODULE += ps
+#USEMODULE += ps
 
 include $(RIOTBASE)/Makefile.include
