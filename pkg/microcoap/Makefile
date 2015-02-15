@@ -1,5 +1,5 @@
 PKG_NAME=microcoap
-PKG_URL=git://github.com/1248/microcoap.git
+PKG_URL=git://github.com/watr-li/microcoap.git
 PKG_VERSION=9cb1dcda2182a8dca8483b230cda8b591a924c82
 PKG_DIR=$(CURDIR)/$(PKG_NAME)
 
