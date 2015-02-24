@@ -1,6 +1,6 @@
 PKG_NAME=microcoap
-PKG_URL=git://github.com/watr-li/microcoap.git
-PKG_VERSION=9cb1dcda2182a8dca8483b230cda8b591a924c82
+PKG_URL=git://github.com/Lotterleben/microcoap.git
+PKG_VERSION=ac23a70c9091c0b380ac98d78bc4432e8bbd09e7
 PKG_DIR=$(CURDIR)/$(PKG_NAME)
 
 ifneq ($(RIOTBOARD),)
