@@ -23,7 +23,7 @@
 #include "udp.h"
 #include "rpl.h"
 
-#define WATR_LI_CHANNEL         (21)     /**< The used channel */
+#define WATR_LI_CHANNEL         (26)     /**< The used channel */
 #define WATR_LI_PAN             (0x03e9) /**< The used PAN ID */
 #define WATR_LI_IFACE           (0)      /**< The used Trasmssion device */
 #define WATR_LI_UDP_PORT        (12345)  /**< The UDP port to listen */
@@ -65,9 +65,26 @@ static void *watr_li_udp_server(void *arg)
 
         if (recsize < 0) {
             puts("[watr_li_udp_server] ERROR: recsize < 0!");
+        } else {
+            /* if we received a string print it */
+            if (buffer_main[recsize-1] == '\0' ) {
+                printf("UDP packet received, payload:\n%s\n", buffer_main);
+            } else {
+                /* print the buffer bytes in hex */
+                printf("UDP packet received, payload (%d bytes):\n", (int)recsize);
+                for(int i = 0; i < recsize; ++i) {
+
+                    if ( (i%8) == 0 ) {
+                        /* newline after 8 bytes */
+                        puts("");
+                    }
+
+                    printf("%02x ", buffer_main[i]);
+                }
+                puts("");
+            }
         }
 
-        printf("UDP packet received, payload: %s\n", buffer_main);
     }
 
     socket_base_close(sock);
@@ -75,13 +92,17 @@ static void *watr_li_udp_server(void *arg)
     return NULL;
 }
 
-static void watr_li_udp_send(void)
+/**
+* @brief sends a packet to the DODAG ID (should be the root node IPv6 address)
+* @param[in] payload pointer to the payload to be sent
+* @param[in] size number of bytes of the payload
+*/
+static void watr_li_udp_send(char* payload, size_t payload_size)
 {
     int sock;
     sockaddr6_t sa;
     int bytes_sent;
     sock = socket_base_socket(PF_INET6, SOCK_DGRAM, IPPROTO_UDP);
-    char text[] = "watr.li node text";
     char addr_str[IPV6_MAX_ADDR_STR_LEN];
 
     if (-1 == sock) {
@@ -90,22 +111,27 @@ static void watr_li_udp_send(void)
     }
     rpl_dodag_t *mydodag = rpl_get_my_dodag();
 
-    memset(&sa, 0, sizeof(sa));
-    sa.sin6_family = AF_INET;
-    memcpy(&sa.sin6_addr, &(mydodag->dodag_id), 16);
-    sa.sin6_port = HTONS(WATR_LI_UDP_PORT);
-    bytes_sent = socket_base_sendto(sock, (char *)text,
-                                       strlen(text) + 1, 0, &sa,
-                                       sizeof(sa));
+    if(mydodag != NULL) {
+        memset(&sa, 0, sizeof(sa));
+        sa.sin6_family = AF_INET;
+        memcpy(&sa.sin6_addr, &(mydodag->dodag_id), 16);
+        sa.sin6_port = HTONS(WATR_LI_UDP_PORT);
 
-    if (bytes_sent < 0) {
-        puts("[watr_li_udp_send] Error sending packet!");
+        bytes_sent = socket_base_sendto(sock,
+                                        payload,
+                                        payload_size,
+                                        0, &sa, sizeof(sa));
+
+        if (bytes_sent < 0) {
+            puts("[watr_li_udp_send] Error sending packet!");
+        }
+
+        printf("[watr_li_udp_send] Successful deliverd %i bytes over UDP to %s to 6LoWPAN\n",
+               bytes_sent, ipv6_addr_to_str(addr_str, IPV6_MAX_ADDR_STR_LEN,
+                    &(sa.sin6_addr)));
+    } else {
+        puts("[watr_li_udp_send] not joined a DODAG (yet), so payload will not be sent.");
     }
-
-    printf("[watr_li_udp_send] Successful deliverd %i bytes over UDP to %s to 6LoWPAN\n",
-           bytes_sent, ipv6_addr_to_str(addr_str, IPV6_MAX_ADDR_STR_LEN,
-                &(sa.sin6_addr)));
-
     socket_base_close(sock);
 }
 
@@ -182,7 +208,7 @@ static int watr_li_setup_node(void)
     iface_id = set_watr_li_if();
 
     /* choose addresses */
-    ipv6_addr_init(&myaddr, 0x2015, 0x1, 0x28, 0x1111, 0x0, 0x0, 0x0, iface_id);
+    ipv6_addr_init(&myaddr, 0x2015, 0x3, 0x18, 0x1111, 0x0, 0x0, 0x0, iface_id);
 
     /* and set it */
     set_watr_li_address(&myaddr);
@@ -201,6 +227,9 @@ static int watr_li_init_rpl(void)
     return 0;
 }
 
+/**
+* @brief create a thread to receive UDP messages
+*/
 static void watr_li_start_udp_server(void)
 {
     thread_create(udp_server_stack_buffer,sizeof(udp_server_stack_buffer),
@@ -215,13 +244,15 @@ int main(void)
     printf("You are running RIOT on a(n) %s board.\n", RIOT_BOARD);
     printf("This board features a(n) %s MCU.\n", RIOT_MCU);
 
+    char payload[] = "watr.li node textX";
+
     watr_li_setup_node();
     watr_li_init_rpl();
     watr_li_start_udp_server();
 
-    sleep(30);
-    watr_li_udp_send();
     while(1){
+        sleep(30);
+        watr_li_udp_send(payload, (strlen(payload) + 1));
         thread_yield();
     }
 
