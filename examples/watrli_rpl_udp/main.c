@@ -31,6 +31,8 @@
 
 /** The UDP server thread stack */
 char udp_server_stack_buffer[KERNEL_CONF_STACKSIZE_MAIN];
+/** The node IPv6 address */
+ipv6_addr_t myaddr;
 
 /**
 * @brief the sample UDP server that expects receiving strings
@@ -201,7 +203,6 @@ static int set_watr_li_address(ipv6_addr_t* node_addr)
 static int watr_li_setup_node(void)
 {
     radio_address_t iface_id = 0xffff;
-    ipv6_addr_t myaddr;
 
     set_watr_li_channel(WATR_LI_CHANNEL);
     set_watr_li_pan(WATR_LI_PAN);
@@ -244,14 +245,17 @@ int main(void)
     printf("You are running RIOT on a(n) %s board.\n", RIOT_BOARD);
     printf("This board features a(n) %s MCU.\n", RIOT_MCU);
 
-    char payload[] = "watr.li node textX";
+    char payload[80];
+    int msgnum = 0;
 
     watr_li_setup_node();
     watr_li_init_rpl();
     watr_li_start_udp_server();
 
+
     while(1){
         sleep(30);
+        snprintf(payload, 80, "watr.li node(%x) msg: %d", HTONS(myaddr.uint16[7]), msgnum++);
         watr_li_udp_send(payload, (strlen(payload) + 1));
         thread_yield();
     }
