@@ -175,7 +175,7 @@ static int set_watr_li_address(ipv6_addr_t* node_addr)
 static int watr_li_setup_node(void)
 {
     radio_address_t iface_id = 0xffff;
-    ipv6_addr_t myaddr, rpl_addr;
+    ipv6_addr_t myaddr;
 
     set_watr_li_channel(WATR_LI_CHANNEL);
     set_watr_li_pan(WATR_LI_PAN);
@@ -183,10 +183,9 @@ static int watr_li_setup_node(void)
 
     /* choose addresses */
     ipv6_addr_init(&myaddr, 0x2015, 0x1, 0x28, 0x1111, 0x0, 0x0, 0x0, iface_id);
-    ipv6_addr_init(&rpl_addr, 0xff02, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x1a);
-    /* and set them */
+
+    /* and set it */
     set_watr_li_address(&myaddr);
-    set_watr_li_address(&rpl_addr);
 
     return 0;
 }
