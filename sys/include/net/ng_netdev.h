@@ -26,6 +26,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+#include "kernel.h"
 #include "net/ng_pkt.h"
 #include "net/ng_netconf.h"
 
@@ -82,6 +83,8 @@ typedef struct {
      * @return              number of bytes that were actually send out
      * @return              -ENODEV if @p dev is invalid
      * @return              -ENOMSG if pkt is invalid
+     * @return              -EOVERFLOW if the payload size of @p pkt exceeds the
+     *                      payload size that can be handled by the device
      */
     int (*send_data)(ng_netdev_t *dev, ng_pktsnip_t *pkt);
 
@@ -165,9 +168,9 @@ typedef struct {
  * @see ng_netdev_t
  */
 struct ng_netdev {
-    ng_netdev_driver_t *driver;     /**< pointer to the devices interface */
-    ng_netdev_event_cb_t event_cb;  /**< netdev event callback */
-    kernel_pid_t mac_pid;           /**< the driver's thread's PID */
+    ng_netdev_driver_t const *driver;   /**< pointer to the devices interface */
+    ng_netdev_event_cb_t event_cb;      /**< netdev event callback */
+    kernel_pid_t mac_pid;               /**< the driver's thread's PID */
 };
 
 #ifdef __cplusplus

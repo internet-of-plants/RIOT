@@ -22,13 +22,7 @@
 #include "msg.h"
 #include "thread.h"
 #include "net/ng_nomac.h"
-#include "net/ng_netreg.h"
-#include "net/ng_pkt.h"
-#include "net/ng_nettype.h"
-#include "net/ng_netdev.h"
-#include "net/ng_netapi.h"
-#include "net/ng_netif.h"
-#include "net/ng_pktbuf.h"
+#include "net/ng_netbase.h"
 
 #define ENABLE_DEBUG    (0)
 #include "debug.h"
@@ -60,7 +54,7 @@ static void _event_cb(ng_netdev_event_t event, void *data)
         ng_pktbuf_hold(pkt, ng_netreg_num(pkt->type, NG_NETREG_DEMUX_CTX_ALL) - 1);
         while (sendto != NULL) {
             DEBUG("nomac: sending pkt %p to PID %u\n", pkt, sendto->pid);
-            ng_netapi_send(sendto->pid, pkt);
+            ng_netapi_receive(sendto->pid, pkt);
             sendto = ng_netreg_getnext(sendto);
         }
     }
