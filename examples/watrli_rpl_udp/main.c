@@ -212,7 +212,7 @@ static int watr_li_setup_node(void)
     ipv6_addr_init(&myaddr, 0x2015, 0x3, 0x18, 0x1111, 0x0, 0x0, 0x0, iface_id);
 
     /* and set it */
-    set_watr_li_address(&myaddr);
+    //set_watr_li_address(&myaddr);
 
     return 0;
 }
@@ -223,7 +223,7 @@ static int watr_li_setup_node(void)
 */
 static int watr_li_init_rpl(void)
 {
-    rpl_init(WATR_LI_IFACE);
+    rpl_init(WATR_LI_IFACE, &myaddr);
     ipv6_iface_set_routing_provider(rpl_get_next_hop);
     return 0;
 }
