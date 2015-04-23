@@ -108,10 +108,14 @@ int ipv6_send_packet(ipv6_hdr_t *packet, ipv6_addr_t *next_hop)
             DEBUG("Trying to find the next hop for %s\n", ipv6_addr_to_str(addr_str, IPV6_MAX_ADDR_STR_LEN, &packet->destaddr));
 
             if (ip_get_next_hop == NULL) {
-                return -1;
+                puts("[EVIL AND DIRTY HACK] We send always multicast (grrrrr)!!!");
+                uint16_t mc = 0xffff;
+                sixlowpan_lowpan_sendto(0, &mc, 2, (uint8_t *) packet, length);
+                return length;
             }
 
             ipv6_addr_t *dest = ip_get_next_hop(&packet->destaddr);
+
 
             if (dest == NULL) {
                 return -1;
@@ -122,6 +126,7 @@ int ipv6_send_packet(ipv6_hdr_t *packet, ipv6_addr_t *next_hop)
             if (nce == NULL
                 || sixlowpan_lowpan_sendto(nce->if_id, &nce->lladdr,
                                            nce->lladdr_len, (uint8_t *) packet, length) < 0) {
+
                 /* XXX: this is wrong, but until ND does work correctly,
                  *      this is the only way (aka the old way)*/
                 uint16_t raddr = 0xffff; /* Broadcast message */
