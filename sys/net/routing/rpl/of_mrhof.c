@@ -62,6 +62,9 @@ static uint16_t calc_path_cost(rpl_parent_t *parent)
 {
     DEBUGF("calc_pathcost\n");
 
+    puts("[EVIL HACK] What goes around, comes around.");
+    return DEFAULT_MIN_HOP_RANK_INCREASE;
+
     /*
      * Calculates the path cost through the parent, for now, only for ETX
      */
