@@ -221,9 +221,25 @@ static int watr_li_setup_node(void)
 * @brief initialize RPL on this watr.li node
 * @return 0 on success
 */
-static int watr_li_init_rpl(void)
+static int watr_li_init_rpl(bool is_root)
 {
+    /* use specific global address */
     rpl_init(WATR_LI_IFACE, &myaddr);
+
+    if(is_root) {
+        ipv6_addr_t prefix;
+        ipv6_addr_init(&prefix, 0x2015, 0x3, 0x18, 0x1111, 0x0, 0x0, 0x0, 0x0);
+
+        rpl_options_t rpl_opts = {
+            .instance_id = 0,
+            .prefix = prefix,
+            .prefix_len = 64,
+            .prefix_flags = RPL_PREFIX_INFO_AUTO_ADDR_CONF,
+            /* autonomous address-configuration */
+        };
+        rpl_init_root(&rpl_opts);
+    }
+
     ipv6_iface_set_routing_provider(rpl_get_next_hop);
     return 0;
 }
@@ -247,15 +263,25 @@ int main(void)
 
     char payload[80];
     int msgnum = 0;
+    bool is_root = false;
 
     watr_li_setup_node();
-    watr_li_init_rpl();
+    watr_li_init_rpl(is_root);
     watr_li_start_udp_server();
 
+    if(is_root) {
+        puts("I'am the RPL root.");
+    } else {
+        puts("I'am a RPL node.");
+    }
 
     while(1){
         sleep(30);
-        snprintf(payload, 80, "watr.li node(%x) msg: %d", HTONS(myaddr.uint16[7]), msgnum++);
+        if(is_root) {
+            snprintf(payload, 80, "watr.li root(%x) msg: %d", HTONS(myaddr.uint16[7]), msgnum++);
+        } else {
+            snprintf(payload, 80, "watr.li node(%x) msg: %d", HTONS(myaddr.uint16[7]), msgnum++);
+        }
         watr_li_udp_send(payload, (strlen(payload) + 1));
         thread_yield();
     }
