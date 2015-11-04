@@ -292,9 +292,10 @@ typedef struct {
 #define ADC_0_WINDOW_LOWER                 0
 #define ADC_0_WINDOW_HIGHER                0
 
-#define ADC_0_CORRECTION_EN                0 /* disabled */
-#define ADC_0_GAIN_CORRECTION              ADC_GAINCORR_RESETVALUE
-#define ADC_0_OFFSET_CORRECTION            ADC_OFFSETCORR_RESETVALUE
+#define ADC_0_CORRECTION_EN                1 /* enabled */
+/* refer to datasheet p.811 for calculation and check http://www.watr.li/Sensing-moisture.html*/
+#define ADC_0_GAIN_CORRECTION              3388 /* 2048 -> 1; 4095/2475 -> 3388 */
+#define ADC_0_OFFSET_CORRECTION            25 /* 24 by determined by testing */
 #define ADC_0_SAMPLE_LENGTH                0
 #define ADC_0_PIN_SCAN_OFFSET_START        0 /* disabled */
 #define ADC_0_PIN_SCAN_INPUT_TO_SCAN       0 /* disabled */
