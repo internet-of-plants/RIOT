@@ -32,12 +32,12 @@
 #endif
 
 #define ADC_NUM         0
-#define ADC_CH          0
+#define ADC_CH          5
 #define RES             ADC_RES_12BIT
 #define DELAY           (100 * 1000U)
 
-#define GPIO_VCC_PORT   0
-#define GPIO_VCC_PIN    13
+#define GPIO_VCC_PORT   1
+#define GPIO_VCC_PIN    2
 
 /* Compare http://www.watr.li/Sensing-moisture.html for setup */
 
